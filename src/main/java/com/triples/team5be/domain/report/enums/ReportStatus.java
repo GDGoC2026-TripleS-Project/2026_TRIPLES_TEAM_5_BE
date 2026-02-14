@@ -1,4 +1,4 @@
-package com.triples.team5be.domain.user.enums;
+package com.triples.team5be.domain.report.enums;
 
 public enum ReportStatus {
     RECEIVED,

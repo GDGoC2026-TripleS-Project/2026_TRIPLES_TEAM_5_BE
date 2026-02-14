@@ -1,4 +1,4 @@
-package com.triples.team5be.domain.user.enums;
+package com.triples.team5be.domain.post.enums;
 
 public enum PostStatus {
     PUBLISHED,

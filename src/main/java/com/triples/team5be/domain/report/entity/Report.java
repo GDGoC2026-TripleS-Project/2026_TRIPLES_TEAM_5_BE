@@ -1,6 +1,9 @@
-package com.triples.team5be.domain.user.entity;
+package com.triples.team5be.domain.report.entity;
 
-import com.triples.team5be.domain.user.enums.ReportStatus;
+import com.triples.team5be.domain.post.entity.Post;
+import com.triples.team5be.domain.user.entity.AdminAction;
+import com.triples.team5be.domain.user.entity.User;
+import com.triples.team5be.domain.report.enums.ReportStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;

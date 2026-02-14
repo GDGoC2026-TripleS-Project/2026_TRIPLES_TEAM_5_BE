@@ -1,17 +1,15 @@
-package com.triples.team5be.domain.user.entity;
+package com.triples.team5be.domain.post.entity;
 
-import com.triples.team5be.domain.user.enums.*;
+import com.triples.team5be.domain.post.enums.PostStatus;
+import com.triples.team5be.domain.report.entity.Report;
+import com.triples.team5be.domain.user.entity.User;
 import com.triples.team5be.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 

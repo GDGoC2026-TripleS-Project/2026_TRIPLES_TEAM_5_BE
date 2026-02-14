@@ -1,5 +1,7 @@
 package com.triples.team5be.domain.user.entity;
 
+import com.triples.team5be.domain.post.entity.Post;
+import com.triples.team5be.domain.report.entity.Report;
 import com.triples.team5be.domain.user.enums.Gender;
 import com.triples.team5be.domain.user.enums.UserPlan;
 import com.triples.team5be.domain.user.enums.UserRole;
