@@ -36,4 +36,21 @@ out/
 ### VS Code ###
 .vscode/
 
+# Local config (do NOT commit secrets)
+application-local.yaml
+application-local.yml
 application.yaml
+application.yml
+
+.env
+.env.*
+!.env.example
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
