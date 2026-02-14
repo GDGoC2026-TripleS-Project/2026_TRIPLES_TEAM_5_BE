@@ -1,3 +1,7 @@
+# application-example.yml
+# 주의: 이 파일을 복사하여 application.yml로 이름을 바꾼 후 사용하세요.
+# application.yml은 보안을 위해 .gitignore에 포함되어야 합니다.
+
 spring:
   datasource:
     # 도커로 띄운 DB 서비스 이름(db) 또는 localhost를 사용합니다.
