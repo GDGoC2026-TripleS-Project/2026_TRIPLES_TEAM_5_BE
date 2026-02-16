@@ -25,7 +25,7 @@ public class TagService {
     public List<SituationTagResponse> getSituationTags() {
         return situationTagRepository.findAllByOrderByIdAsc()
                 .stream()
-                .map(t -> new SituationTagResponse(t.getId(), t.getName(), t.getIsActive()))
+                .map(t -> new SituationTagResponse(t.getId(), t.getName()))
                 .toList();
     }
 
