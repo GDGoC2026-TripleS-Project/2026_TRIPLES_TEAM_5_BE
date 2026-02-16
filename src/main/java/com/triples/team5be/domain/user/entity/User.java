@@ -119,6 +119,15 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "targetUser")
     private List<AdminAction> receivedPenalties = new ArrayList<>();
 
+    public void setTokenBalance(TokenBalance tokenBalance) {
+        if (tokenBalance == null) {
+            this.tokenBalance = null;
+            return;
+        }
+        this.tokenBalance = tokenBalance;
+        // tokenBalance.setUser(this);
+    }
+
     @Builder
     public User(String loginId, String password, String userName, LocalDate birthDate,
                 Gender gender, String phoneNumber, Boolean thirdPartyConsent, Boolean marketingConsent,

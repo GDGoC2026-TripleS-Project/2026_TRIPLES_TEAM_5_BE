@@ -2,6 +2,7 @@ package com.triples.team5be.domain.post.entity;
 
 import com.triples.team5be.domain.post.enums.PostStatus;
 import com.triples.team5be.domain.report.entity.Report;
+import com.triples.team5be.domain.tag.entity.PostSituationTag;
 import com.triples.team5be.domain.user.entity.User;
 import com.triples.team5be.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
@@ -71,7 +72,7 @@ public class Post extends BaseTimeEntity {
 
     // N:M (Tag)
     @OneToMany(mappedBy = "post")
-    private List<PostTag> postTags = new ArrayList<>();
+    private List<PostSituationTag> postSituationTags = new ArrayList<>();
 
     @OneToMany(mappedBy = "targetPost")
     private List<Report> reports = new ArrayList<>();
