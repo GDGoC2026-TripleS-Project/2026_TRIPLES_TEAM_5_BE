@@ -1,6 +1,7 @@
 package com.triples.team5be.domain.tag.service;
 
 import com.triples.team5be.domain.post.entity.Post;
+import com.triples.team5be.domain.post.enums.PostStatus;
 import com.triples.team5be.domain.post.repository.PostRepository;
 import com.triples.team5be.domain.tag.dto.PostSituationTagResponse;
 import com.triples.team5be.domain.tag.dto.SavePostSituationTagsRequest;
@@ -10,9 +11,12 @@ import com.triples.team5be.domain.tag.entity.SituationTag;
 import com.triples.team5be.domain.tag.repository.PostSituationTagRepository;
 import com.triples.team5be.domain.tag.repository.SituationTagRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +38,7 @@ public class TagService {
 
     // GET /posts/{postId}/tags/situations
     public List<PostSituationTagResponse> getPostSituationTags(Long postId) {
-        return postSituationTagRepository.findAllByPostId(postId)
+        return postSituationTagRepository.findAllByPost_Id(postId)
                 .stream()
                 .map(PostSituationTag::getTag)
                 .map(t -> new PostSituationTagResponse(t.getId(), t.getName()))
@@ -45,7 +49,7 @@ public class TagService {
     @Transactional
     public void savePostSituationTags(Long postId, SavePostSituationTagsRequest request) {
         // 1) 기존 매핑 삭제
-        postSituationTagRepository.deleteAllByPostId(postId);
+        postSituationTagRepository.deleteAllByPost_Id(postId);
 
         // 2) 요청 tagIds -> SituationTag 조회
         List<Long> tagIds = (request.tagIds() == null) ? List.of() : request.tagIds();
@@ -67,5 +71,23 @@ public class TagService {
                     .build());
         }
         postSituationTagRepository.saveAll(mappings);
+    }
+
+    // GET /tags/trending
+    public List<String> getTrendingTagsThisWeek(int topN) {
+        int limit = (topN <= 0) ? 10 : topN;
+
+        ZoneId zone = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(zone);
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        LocalDateTime start = monday.atStartOfDay();
+        LocalDateTime end = start.plusWeeks(1);
+
+        return postSituationTagRepository.findTrendingTagNames(
+                start,
+                end,
+                PostStatus.PUBLISHED,
+                PageRequest.of(0, limit));
     }
 }
