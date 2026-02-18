@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.triples.team5be.global.exception.NotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class PostLikeService {
     @Transactional
     public PostLikeToggleResponse toggle(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found: " + postId));
+                .orElseThrow(() -> new NotFoundException("Post not found: " + postId));
 
         return postLikeRepository.findByPostIdAndUserId(postId, userId)
                 .map(existing -> {

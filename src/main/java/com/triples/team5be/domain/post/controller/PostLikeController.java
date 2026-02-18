@@ -2,8 +2,7 @@ package com.triples.team5be.domain.post.controller;
 
 import com.triples.team5be.domain.post.dto.PostLikeToggleResponse;
 import com.triples.team5be.domain.post.service.PostLikeService;
-import com.triples.team5be.domain.user.entity.User;
-import com.triples.team5be.domain.user.repository.UserRepository;
+import com.triples.team5be.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,24 +14,23 @@ import org.springframework.web.bind.annotation.*;
 public class PostLikeController {
 
     private final PostLikeService postLikeService;
-    private final UserRepository userRepository;
 
-    /**
-     * 글 좋아요 토글
-     * POST /api/posts/{postId}/likes
-     * Authorization: Bearer {token}
-     */
     @PostMapping("/{postId}/likes")
     public ResponseEntity<PostLikeToggleResponse> toggleLike(
             @PathVariable Long postId,
             Authentication authentication) {
-        // authentication.getName()이 loginId라고 가정 (프로젝트 JWT 설정에 따라 바뀔 수 있음)
-        String loginId = authentication.getName();
+        if (authentication == null || authentication.getName() == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
 
-        User user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found by loginId: " + loginId));
+        Long userId;
+        try {
+            // principal = userId 문자열 (JwtTokenProvider에서 subject=userId)
+            userId = Long.parseLong(authentication.getName());
+        } catch (NumberFormatException e) {
+            throw new UnauthorizedException("Invalid token subject.");
+        }
 
-        PostLikeToggleResponse response = postLikeService.toggle(postId, user.getId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(postLikeService.toggle(postId, userId));
     }
 }
