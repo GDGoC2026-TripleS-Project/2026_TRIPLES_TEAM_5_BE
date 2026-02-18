@@ -20,41 +20,49 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
+        private final JwtTokenProvider jwtTokenProvider;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // REST API 환경: CSRF 비활성화
-                .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                // REST API 환경: CSRF 비활성화
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .formLogin(AbstractHttpConfigurer::disable)
+                                .httpBasic(AbstractHttpConfigurer::disable)
 
-                // JWT 사용: 세션 안 씀
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // JWT 사용: 세션 안 씀
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // API 접근 권한
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // 좋아요 API는 anyRequest에 포함되어 인증 필요(명시하고 싶으면 아래 줄 추가 가능)
-                        // .requestMatchers(HttpMethod.POST, "/api/posts/*/likes").authenticated()
-                        .anyRequest().authenticated())
+                                // API 접근 권한
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/api/auth/**").permitAll()
 
-                // Bearer 토큰 인증 필터 추가
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
-                        UsernamePasswordAuthenticationFilter.class)
+                                                // 조회수 집계/중복방지 API는 익명도 가능(anonymousId 쿠키 사용)
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                                                "/api/posts/*/views")
+                                                .permitAll()
 
-                // 인증/인가 실패 시 상태코드 정리
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((req, res, e) -> res.setStatus(HttpServletResponse.SC_UNAUTHORIZED)) // 401
-                        .accessDeniedHandler((req, res, e) -> res.setStatus(HttpServletResponse.SC_FORBIDDEN)) // 403
-                );
+                                                // 그 외는 모두 인증 필요
+                                                .anyRequest().authenticated())
 
-        return http.build();
-    }
+                                // Bearer 토큰 인증 필터 추가
+                                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
+                                                UsernamePasswordAuthenticationFilter.class)
+
+                                // 인증/인가 실패 시 상태코드 정리
+                                .exceptionHandling(ex -> ex
+                                                .authenticationEntryPoint((req, res, e) -> res
+                                                                .setStatus(HttpServletResponse.SC_UNAUTHORIZED)) // 401
+                                                .accessDeniedHandler((req, res, e) -> res
+                                                                .setStatus(HttpServletResponse.SC_FORBIDDEN)) // 403
+                                );
+
+                return http.build();
+        }
 }

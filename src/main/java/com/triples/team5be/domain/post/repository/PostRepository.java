@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    // 좋아요 집계
     @Modifying
     @Query("update Post p set p.likeCount = p.likeCount + 1 where p.id = :postId")
     int incrementLikeCount(@Param("postId") Long postId);
@@ -20,4 +21,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("select p.likeCount from Post p where p.id = :postId")
     int findLikeCountById(@Param("postId") Long postId);
+
+    // 조회수 집계
+    @Modifying
+    @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :postId")
+    int incrementViewCount(@Param("postId") Long postId);
+
+    @Query("select p.viewCount from Post p where p.id = :postId")
+    int findViewCountById(@Param("postId") Long postId);
 }
