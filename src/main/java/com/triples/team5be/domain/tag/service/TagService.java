@@ -1,5 +1,7 @@
 package com.triples.team5be.domain.tag.service;
 
+import com.triples.team5be.domain.post.entity.Post;
+import com.triples.team5be.domain.post.repository.PostRepository;
 import com.triples.team5be.domain.tag.dto.PostSituationTagResponse;
 import com.triples.team5be.domain.tag.dto.SavePostSituationTagsRequest;
 import com.triples.team5be.domain.tag.dto.SituationTagResponse;
@@ -20,6 +22,7 @@ public class TagService {
 
     private final SituationTagRepository situationTagRepository;
     private final PostSituationTagRepository postSituationTagRepository;
+    private final PostRepository postRepository;
 
     // GET /tags/situations
     public List<SituationTagResponse> getSituationTags() {
@@ -52,11 +55,14 @@ public class TagService {
             throw new IllegalArgumentException("존재하지 않는 tagId가 포함되어 있습니다.");
         }
 
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글입니다."));
+
         // 3) 매핑 저장
         List<PostSituationTag> mappings = new ArrayList<>();
         for (SituationTag tag : tags) {
             mappings.add(PostSituationTag.builder()
-                    .postId(postId)
+                    .post(post)
                     .tag(tag)
                     .build());
         }
