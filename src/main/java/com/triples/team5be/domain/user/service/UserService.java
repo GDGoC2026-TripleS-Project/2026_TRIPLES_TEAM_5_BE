@@ -1,11 +1,16 @@
 package com.triples.team5be.domain.user.service;
 
+import com.triples.team5be.domain.user.dto.AdminAdjustTrustScoreRequest;
+import com.triples.team5be.domain.user.dto.AdminAdjustTrustScoreResponse;
 import com.triples.team5be.domain.user.dto.LoginRequest;
 import com.triples.team5be.domain.user.dto.LoginResponse;
 import com.triples.team5be.domain.user.dto.SignUpRequest;
 import com.triples.team5be.domain.user.dto.SignUpResponse;
+import com.triples.team5be.domain.user.dto.TrustStatusResponse;
 import com.triples.team5be.domain.user.entity.TokenBalance;
 import com.triples.team5be.domain.user.entity.User;
+import com.triples.team5be.domain.user.enums.UserRole;
+import com.triples.team5be.domain.user.enums.UserStatus;
 import com.triples.team5be.domain.user.repository.UserRepository;
 import com.triples.team5be.global.auth.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +18,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final int RECOVERED_SCORE = 20;
+    private static final int MAX_TRUST_SCORE = 100;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -75,8 +85,135 @@ public class UserService {
                 user.getId(),
                 user.getUserName(),
                 user.getRole().name(),
-                token
-        );
+                token);
     }
 
+    // =========================
+    // ✅ (사용자) 내 신뢰도/제재 상태 조회
+    // GET /users/me/trust-status
+    // =========================
+    @Transactional
+    public TrustStatusResponse getMyTrustStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        // 조회 시점에 자동 해제(해제일 지나면 ACTIVE로 + trustScore 회복)
+        autoRecoverIfNeeded(user);
+
+        boolean canWritePost = user.getStatus() == UserStatus.ACTIVE;
+
+        return new TrustStatusResponse(
+                user.getTrustScore(),
+                user.getStatus().name(),
+                safeInt(user.getBanCount(), 0),
+                user.getBanReleaseDate(),
+                canWritePost,
+                Boolean.TRUE.equals(user.getTokenRestricted()),
+                RECOVERED_SCORE);
+    }
+
+    // =========================
+    // ✅ (관리자) 신뢰도 점수 증감 + 자동 제재 트리거(삼진아웃)
+    // PATCH /admin/users/{userId}/trust-score
+    // =========================
+    @Transactional
+    public AdminAdjustTrustScoreResponse adjustTrustScore(Long adminId, Long targetUserId,
+            AdminAdjustTrustScoreRequest request) {
+        if (request == null || request.scoreDelta() == null || request.scoreDelta() == 0) {
+            throw new IllegalArgumentException("scoreDelta는 0이 될 수 없습니다.");
+        }
+        if (request.reason() == null || request.reason().isBlank()) {
+            throw new IllegalArgumentException("reason은 필수입니다.");
+        }
+
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("관리자 정보를 찾을 수 없습니다."));
+
+        // 관리자 권한 체크 (프로젝트에서 role을 쓰고 있으니 DB role로 검사)
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new IllegalArgumentException("관리자만 접근 가능합니다.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("대상 유저를 찾을 수 없습니다."));
+
+        // 조정 전에 자동 해제 처리(기간 만료된 밴이면 풀고 회복 점수로)
+        autoRecoverIfNeeded(target);
+
+        int prev = safeInt(target.getTrustScore(), 0);
+        int raw = prev + request.scoreDelta();
+
+        // ✅ @Min(0) 깨지지 않게: 음수 저장 금지
+        if (raw <= 0) {
+            // 점수는 0으로만 저장
+            target.setTrustScore(0);
+
+            // ACTIVE에서 0 이하로 "떨어지는 순간"만 strike 증가(권장)
+            if (target.getStatus() == UserStatus.ACTIVE) {
+                applyStrikeBan(target);
+            }
+            // 이미 BANNED인 상태면 banCount는 추가로 올리지 않음(중복 strike 방지)
+        } else {
+            // 0 초과면 0~100 범위로 clamp
+            int clamped = Math.min(raw, MAX_TRUST_SCORE);
+            target.setTrustScore(clamped);
+            // 점수 올린다고 자동으로 밴 해제는 하지 않음(정책 없으므로)
+        }
+
+        userRepository.save(target);
+
+        return new AdminAdjustTrustScoreResponse(
+                target.getId(),
+                prev,
+                target.getTrustScore(),
+                target.getStatus().name(),
+                safeInt(target.getBanCount(), 0),
+                target.getBanReleaseDate());
+    }
+
+    // =========================
+    // 내부 로직
+    // =========================
+
+    private void autoRecoverIfNeeded(User user) {
+        if (user.getStatus() != UserStatus.BANNED)
+            return;
+
+        LocalDateTime release = user.getBanReleaseDate();
+        if (release == null)
+            return; // 영구정지면 null 유지
+
+        // now >= release 면 해제
+        if (!LocalDateTime.now().isBefore(release)) {
+            user.setStatus(UserStatus.ACTIVE);
+            user.setTrustScore(RECOVERED_SCORE);
+            user.setBanReleaseDate(null);
+            user.setTokenRestricted(false);
+
+            // 밴 횟수는 유지(정책: 삼진아웃 누적)
+            if (user.getBanCount() == null)
+                user.setBanCount(0);
+        }
+    }
+
+    private void applyStrikeBan(User user) {
+        int count = safeInt(user.getBanCount(), 0);
+        count = Math.min(count + 1, 3);
+
+        user.setBanCount(count);
+        user.setStatus(UserStatus.BANNED);
+        user.setTokenRestricted(true);
+
+        if (count == 1) {
+            user.setBanReleaseDate(LocalDateTime.now().plusDays(14)); // 2주
+        } else if (count == 2) {
+            user.setBanReleaseDate(LocalDateTime.now().plusMonths(1)); // 1달
+        } else {
+            user.setBanReleaseDate(null); // 3회째: 영구정지
+        }
+    }
+
+    private int safeInt(Integer value, int defaultValue) {
+        return value != null ? value : defaultValue;
+    }
 }

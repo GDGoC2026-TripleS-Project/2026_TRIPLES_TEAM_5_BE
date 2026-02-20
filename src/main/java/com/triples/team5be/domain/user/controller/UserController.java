@@ -7,10 +7,7 @@ import com.triples.team5be.domain.user.dto.SignUpResponse;
 import com.triples.team5be.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,7 +19,7 @@ public class UserController {
     @PostMapping("/signup")
     public ResponseEntity<SignUpResponse> signUp(@RequestBody SignUpRequest request) {
         SignUpResponse response = userService.signUp(request);
-        return ResponseEntity.status(201).body(response); // 201 Created 응답
+        return ResponseEntity.status(201).body(response); // 201 Created
     }
 
     @PostMapping("/login")
