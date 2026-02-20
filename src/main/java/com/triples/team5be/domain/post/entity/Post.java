@@ -66,6 +66,11 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer viewCount;
 
+    // 조회수 증가 메서드
+    public void incrementViewCount() {
+        this.viewCount += 1;
+    }
+
     // 좋아요 수
     @Column(nullable = false)
     private Integer likeCount;
@@ -92,5 +97,12 @@ public class Post extends BaseTimeEntity {
         this.status = (status != null) ? status : PostStatus.PUBLISHED;
         this.viewCount = 0;
         this.likeCount = 0;
+    }
+
+    public void update(String title, String situation, String action, String retrospective) {
+        this.title = title;
+        this.situation = situation;
+        this.action = action;
+        this.retrospective = retrospective;
     }
 }

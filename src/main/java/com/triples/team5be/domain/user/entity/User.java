@@ -86,7 +86,7 @@ public class User extends BaseTimeEntity {
     @Min(0)
     @Max(100)
     @Column(nullable = false)
-    private Integer trustScore; // 기본 신뢰 점수
+    private Integer trustScore = 50; // 기본 신뢰 점수
 
     // 신뢰도 제재/제한 상태(추가)
     // 삼진아웃 제재 횟수 (0~3)

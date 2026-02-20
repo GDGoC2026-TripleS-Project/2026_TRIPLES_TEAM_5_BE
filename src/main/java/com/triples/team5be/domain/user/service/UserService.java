@@ -6,6 +6,7 @@ import com.triples.team5be.domain.user.dto.LoginRequest;
 import com.triples.team5be.domain.user.dto.LoginResponse;
 import com.triples.team5be.domain.user.dto.SignUpRequest;
 import com.triples.team5be.domain.user.dto.SignUpResponse;
+import com.triples.team5be.domain.user.entity.LogoutToken;
 import com.triples.team5be.domain.user.dto.TrustStatusResponse;
 import com.triples.team5be.domain.user.dto.UpdatePasswordRequest;
 import com.triples.team5be.domain.user.dto.UpdatePasswordResponse;
@@ -13,16 +14,23 @@ import com.triples.team5be.domain.user.dto.UpdateUserDetailRequest;
 import com.triples.team5be.domain.user.dto.UpdateUserDetailResponse;
 import com.triples.team5be.domain.user.entity.TokenBalance;
 import com.triples.team5be.domain.user.entity.User;
+import com.triples.team5be.domain.user.repository.LogoutTokenRepository;
 import com.triples.team5be.domain.user.enums.UserRole;
 import com.triples.team5be.domain.user.enums.UserStatus;
 import com.triples.team5be.domain.user.repository.UserRepository;
 import com.triples.team5be.global.auth.JwtTokenProvider;
+import com.triples.team5be.global.error.BusinessException;
+import com.triples.team5be.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +42,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LogoutTokenRepository logoutTokenRepository;
 
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
@@ -75,7 +84,7 @@ public class UserService {
     public LoginResponse login(LoginRequest request) {
         // 유저 조회
         User user = userRepository.findByLoginId(request.loginId())
-                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 잘못되었습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 비밀번호 일치 확인
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -90,6 +99,21 @@ public class UserService {
                 user.getUserName(),
                 user.getRole().name(),
                 token);
+    }
+
+    @Transactional
+    public void logout(String token) {
+
+        // 토큰에서 만료 시간 추출
+        java.util.Date expirationDate = jwtTokenProvider.getExpirationDate(token);
+
+        // Date를 LocalDateTime으로 변환
+        java.time.LocalDateTime expiry = expirationDate.toInstant()
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDateTime();
+
+        // 저장
+        logoutTokenRepository.save(new LogoutToken(token, expiry));
     }
 
     // (사용자) 계정 정보 수정
