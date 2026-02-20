@@ -16,6 +16,9 @@ CREATE TABLE users (
     plan VARCHAR(20) NOT NULL DEFAULT 'FREE',
     trust_score INT NOT NULL DEFAULT 50,
     login_id_updated_at DATETIME,
+    ban_count INT NOT NULL DEFAULT 0,
+    ban_release_date DATETIME NULL,
+    token_restricted TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -117,3 +120,9 @@ CREATE TABLE token_history (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_token_history_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+INSERT INTO tag (id, name) VALUES
+                                         (1, '군대'), (2, '휴학/복학'), (3, '성적'), (4, '전과'),
+                                         (5, '연애'), (6, '장학금'), (7, '과제/팀플'), (8, '대학원'),
+                                         (9, '졸업'), (10, '새내기'), (11, '자취'), (12, '편입'),
+                                         (13, 'N수/반수'), (14, '취업');

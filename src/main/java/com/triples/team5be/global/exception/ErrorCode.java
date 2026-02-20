@@ -17,7 +17,10 @@ public enum ErrorCode {
     // 인증 관련
     INVALID_TOKEN(401, "A001", "잘못된 토큰입니다."),
     EXPIRED_TOKEN(401, "A002", "만료된 토큰입니다."),
-    LOGOUT_TOKEN(401, "A003", "로그아웃된 토큰입니다.");
+    LOGOUT_TOKEN(401, "A003", "로그아웃된 토큰입니다."),
+
+    // 404 에러를 나타내는 상수 추가
+    NOT_FOUND(404, "COMMON_001", "리소스가 존재하지 않습니다.");
 
     private final int status;
     private final String code;
