@@ -3,6 +3,7 @@ package com.triples.team5be.domain.tag.controller;
 import com.triples.team5be.domain.tag.dto.PostSituationTagResponse;
 import com.triples.team5be.domain.tag.dto.SavePostSituationTagsRequest;
 import com.triples.team5be.domain.tag.dto.SituationTagResponse;
+import com.triples.team5be.domain.tag.dto.TrendingTagsResponse;
 import com.triples.team5be.domain.tag.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -35,5 +36,12 @@ public class TagController {
             @RequestBody SavePostSituationTagsRequest request) {
         tagService.savePostSituationTags(postId, request);
         return ResponseEntity.ok().build();
+    }
+
+    // GET /tags/trending
+    @GetMapping("/tags/trending")
+    public ResponseEntity<TrendingTagsResponse> getTrendingTags() {
+        return ResponseEntity.ok(
+                TrendingTagsResponse.success(tagService.getTrendingTagsThisWeek(10)));
     }
 }
