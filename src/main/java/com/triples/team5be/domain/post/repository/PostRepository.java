@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    // 내가 쓴 글 개수(마이페이지 postCount)
+    int countByAuthorId(Long authorId);
+
     // 좋아요 집계
     @Modifying
     @Query("update Post p set p.likeCount = p.likeCount + 1 where p.id = :postId")

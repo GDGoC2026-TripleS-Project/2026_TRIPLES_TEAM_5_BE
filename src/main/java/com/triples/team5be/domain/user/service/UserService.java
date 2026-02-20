@@ -1,9 +1,13 @@
 package com.triples.team5be.domain.user.service;
 
+import java.time.LocalDateTime;
+
+import com.triples.team5be.domain.post.repository.PostRepository;
 import com.triples.team5be.domain.user.dto.AdminAdjustTrustScoreRequest;
 import com.triples.team5be.domain.user.dto.AdminAdjustTrustScoreResponse;
 import com.triples.team5be.domain.user.dto.LoginRequest;
 import com.triples.team5be.domain.user.dto.LoginResponse;
+import com.triples.team5be.domain.user.dto.MyDashboardResponse;
 import com.triples.team5be.domain.user.dto.SignUpRequest;
 import com.triples.team5be.domain.user.dto.SignUpResponse;
 import com.triples.team5be.domain.user.entity.LogoutToken;
@@ -27,12 +31,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -44,6 +42,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final LogoutTokenRepository logoutTokenRepository;
+    private final PostRepository postRepository;
 
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
@@ -119,6 +118,38 @@ public class UserService {
 
         // 저장
         logoutTokenRepository.save(new LogoutToken(token, expiry));
+    }
+
+    // (사용자) 마이페이지 조회
+    // GET /users/me/dashboard
+    @Transactional(readOnly = true)
+    public MyDashboardResponse getMyDashboard(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new IllegalArgumentException("탈퇴한 계정입니다.");
+        }
+
+        int postCount = postRepository.countByAuthorId(userId);
+
+        int tokenBalance = 0;
+        if (user.getTokenBalance() != null && user.getTokenBalance().getBalance() != null) {
+            tokenBalance = user.getTokenBalance().getBalance();
+        }
+
+        int trustScore = user.getTrustScore() != null ? user.getTrustScore() : 0;
+
+        MyDashboardResponse.Stats stats = new MyDashboardResponse.Stats(
+                postCount,
+                trustScore,
+                tokenBalance);
+
+        return new MyDashboardResponse(
+                user.getLoginId(),
+                user.getUserName(),
+                null, // profileImageUrl (현재 User에 없으면 null)
+                stats);
     }
 
     // (사용자) 계정 정보 수정

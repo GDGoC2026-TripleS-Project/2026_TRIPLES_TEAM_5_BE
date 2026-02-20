@@ -1,5 +1,6 @@
 package com.triples.team5be.domain.user.controller;
 
+import com.triples.team5be.domain.user.dto.MyDashboardResponse;
 import com.triples.team5be.domain.user.dto.UpdatePasswordRequest;
 import com.triples.team5be.domain.user.dto.UpdatePasswordResponse;
 import com.triples.team5be.domain.user.dto.UpdateUserDetailRequest;
@@ -17,6 +18,15 @@ import org.springframework.web.bind.annotation.*;
 public class UserMeController {
 
     private final UserService userService;
+
+    // 마이페이지 조회: GET /users/me/dashboard
+    @GetMapping("/dashboard")
+    public ResponseEntity<MyDashboardResponse> getMyDashboard(
+            @AuthenticationPrincipal String userIdStr) {
+        Long userId = Long.parseLong(userIdStr);
+        MyDashboardResponse response = userService.getMyDashboard(userId);
+        return ResponseEntity.ok(response);
+    }
 
     @PatchMapping("/detail")
     public ResponseEntity<UpdateUserDetailResponse> updateMyDetail(
