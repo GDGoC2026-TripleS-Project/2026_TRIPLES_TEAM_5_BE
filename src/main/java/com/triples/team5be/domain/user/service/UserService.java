@@ -105,7 +105,7 @@ public class UserService {
     public void logout(String token) {
 
         // 토큰에서 만료 시간 추출
-        java.util.Date expirationDate = jwtTokenProvider.getExpirationDate(token);
+        java.util.Date expirationDate = jwtTokenProvider.getClaims(token).getExpiration();
 
         // Date를 LocalDateTime으로 변환
         java.time.LocalDateTime expiry = expirationDate.toInstant()
