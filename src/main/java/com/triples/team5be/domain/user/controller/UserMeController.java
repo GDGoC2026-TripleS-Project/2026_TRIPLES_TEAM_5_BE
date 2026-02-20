@@ -4,6 +4,7 @@ import com.triples.team5be.domain.user.dto.UpdatePasswordRequest;
 import com.triples.team5be.domain.user.dto.UpdatePasswordResponse;
 import com.triples.team5be.domain.user.dto.UpdateUserDetailRequest;
 import com.triples.team5be.domain.user.dto.UpdateUserDetailResponse;
+import com.triples.team5be.domain.user.dto.WithdrawResponse;
 import com.triples.team5be.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,15 @@ public class UserMeController {
             @RequestBody UpdatePasswordRequest request) {
         Long userId = Long.parseLong(userIdStr);
         UpdatePasswordResponse response = userService.updateMyPassword(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 회원 탈퇴: DELETE /users/me/detail
+    @DeleteMapping("/detail")
+    public ResponseEntity<WithdrawResponse> withdrawMyAccount(
+            @AuthenticationPrincipal String userIdStr) {
+        Long userId = Long.parseLong(userIdStr);
+        WithdrawResponse response = userService.withdrawMyAccount(userId);
         return ResponseEntity.ok(response);
     }
 }

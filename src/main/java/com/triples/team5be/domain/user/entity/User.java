@@ -212,4 +212,11 @@ public class User extends BaseTimeEntity {
         this.banReleaseDate = null;
         this.tokenRestricted = false;
     }
+
+    public void withdraw() {
+        this.status = com.triples.team5be.domain.user.enums.UserStatus.DELETED;
+        this.tokenRestricted = true;
+        this.banReleaseDate = null;
+    }
+
 }
