@@ -19,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query("update User u set u.trustScore = u.trustScore + 1 where u.id = :userId")
     int incrementTrustScore(@Param("userId") Long userId);
+
+    // 내 ID 제외 중복 체크
+    boolean existsByPhoneNumberAndIdNot(String phoneNumber, Long id);
 }

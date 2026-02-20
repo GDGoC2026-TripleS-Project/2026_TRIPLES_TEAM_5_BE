@@ -23,7 +23,7 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "users")  // user는 DB 예약어인 경우가 많아 users로 변경
+@Table(name = "users") // user는 DB 예약어인 경우가 많아 users로 변경
 public class User extends BaseTimeEntity {
 
     // 사용자 아이디
@@ -83,9 +83,23 @@ public class User extends BaseTimeEntity {
     private LocalDateTime planExpiresAt;
 
     // 신뢰도 점수
-    @Min(0) @Max(100)
+    @Min(0)
+    @Max(100)
     @Column(nullable = false)
     private Integer trustScore = 50; // 기본 신뢰 점수
+
+    // 신뢰도 제재/제한 상태(추가)
+    // 삼진아웃 제재 횟수 (0~3)
+    @Column(nullable = false)
+    private Integer banCount = 0;
+
+    // 제재 해제 일시 (영구정지면 null)
+    @Column
+    private LocalDateTime banReleaseDate;
+
+    // 토큰 사용 제한 여부
+    @Column(nullable = false)
+    private Boolean tokenRestricted = false;
 
     // 아이디 변경 일시
     // 아이디 변경 주기 제한용
@@ -128,10 +142,58 @@ public class User extends BaseTimeEntity {
         // tokenBalance.setUser(this);
     }
 
+    // 상태 변경용 메서드(서비스에서 사용)
+    public void setTrustScore(Integer trustScore) {
+        this.trustScore = trustScore;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public void setBanCount(Integer banCount) {
+        this.banCount = banCount;
+    }
+
+    public void setBanReleaseDate(LocalDateTime banReleaseDate) {
+        this.banReleaseDate = banReleaseDate;
+    }
+
+    public void setTokenRestricted(Boolean tokenRestricted) {
+        this.tokenRestricted = tokenRestricted;
+    }
+
+    // 비밀번호 변경용 (encodedPassword를 넣어주세요)
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    // 계정 정보 수정(PATCH)용 - null이 아닌 값만 반영
+    public void updateDetail(
+            String userName,
+            LocalDate birthDate,
+            Gender gender,
+            String phoneNumber,
+            Boolean thirdPartyConsent,
+            Boolean marketingConsent) {
+        if (userName != null)
+            this.userName = userName;
+        if (birthDate != null)
+            this.birthDate = birthDate;
+        if (gender != null)
+            this.gender = gender;
+        if (phoneNumber != null)
+            this.phoneNumber = phoneNumber;
+        if (thirdPartyConsent != null)
+            this.thirdPartyConsent = thirdPartyConsent;
+        if (marketingConsent != null)
+            this.marketingConsent = marketingConsent;
+    }
+
     @Builder
     public User(String loginId, String password, String userName, LocalDate birthDate,
-                Gender gender, String phoneNumber, Boolean thirdPartyConsent, Boolean marketingConsent,
-                UserStatus status, UserRole role, UserPlan plan, Integer trustScore) {
+            Gender gender, String phoneNumber, Boolean thirdPartyConsent, Boolean marketingConsent,
+            UserStatus status, UserRole role, UserPlan plan, Integer trustScore) {
         this.loginId = loginId;
         this.password = password;
         this.userName = userName;
@@ -144,5 +206,10 @@ public class User extends BaseTimeEntity {
         this.role = (role != null) ? role : UserRole.USER;
         this.plan = (plan != null) ? plan : UserPlan.FREE;
         this.trustScore = (trustScore != null) ? trustScore : 50;
+
+        // 제재/제한 기본값 (신규 유저 기본)
+        this.banCount = 0;
+        this.banReleaseDate = null;
+        this.tokenRestricted = false;
     }
 }
