@@ -24,12 +24,14 @@ import com.triples.team5be.domain.user.enums.UserRole;
 import com.triples.team5be.domain.user.enums.UserStatus;
 import com.triples.team5be.domain.user.repository.UserRepository;
 import com.triples.team5be.global.auth.JwtTokenProvider;
-import com.triples.team5be.global.error.BusinessException;
-import com.triples.team5be.global.error.ErrorCode;
+import com.triples.team5be.global.exception.BusinessException;
+import com.triples.team5be.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -76,7 +78,7 @@ public class UserService {
         user.setTokenBalance(balance);
 
         User savedUser = userRepository.save(user);
-
+        // 최종 저장
         return new SignUpResponse(savedUser.getId(), savedUser.getLoginId());
     }
 
@@ -98,6 +100,7 @@ public class UserService {
 
         String token = jwtTokenProvider.createToken(user.getId(), user.getRole().name());
 
+        // 로그인 성공
         return new LoginResponse(
                 user.getId(),
                 user.getUserName(),
@@ -173,11 +176,13 @@ public class UserService {
             if (request.phoneNumber().isBlank()) {
                 throw new IllegalArgumentException("phoneNumber는 공백일 수 없습니다.");
             }
+            // 내 id 제외하고 중복 체크
             if (userRepository.existsByPhoneNumberAndIdNot(request.phoneNumber(), user.getId())) {
                 throw new IllegalArgumentException("이미 등록된 전화번호입니다.");
             }
         }
 
+        // 엔티티에 추가한 updateDetail() 호출 (null이면 기존값 유지)
         user.updateDetail(
                 request.userName(),
                 request.birthDate(),

@@ -4,13 +4,21 @@ import com.triples.team5be.domain.post.dto.PostCreateRequest;
 import com.triples.team5be.domain.post.dto.PostResponse;
 import com.triples.team5be.domain.post.dto.PostUpdateRequest;
 import com.triples.team5be.domain.post.entity.Post;
+import com.triples.team5be.domain.tag.entity.PostSituationTag;
+import com.triples.team5be.domain.tag.entity.SituationTag;
 import com.triples.team5be.domain.post.enums.PostStatus;
 import com.triples.team5be.domain.post.repository.PostRepository;
+import com.triples.team5be.domain.tag.repository.PostSituationTagRepository;
+import com.triples.team5be.domain.tag.repository.SituationTagRepository;
 import com.triples.team5be.domain.user.entity.User;
 import com.triples.team5be.domain.user.repository.UserRepository;
-import com.triples.team5be.global.error.BusinessException;
-import com.triples.team5be.global.error.ErrorCode;
+import com.triples.team5be.global.auth.TagResponse;
+import com.triples.team5be.global.auth.TagResult;
+import com.triples.team5be.global.exception.BusinessException;
+import com.triples.team5be.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpEntity;
@@ -18,9 +26,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,11 +39,12 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final SituationTagRepository tagRepository;
+    private final PostSituationTagRepository postTagRepository;
     private final RestTemplate restTemplate;
 
     // AI 서버 주소?
-    private final String AI_TAGGING_URL = "http://localhost:8000/ai/tagging";
-    private final String AI_DB_SAVE_URL = "http://localhost:8000/ai/db-save";
+    private final String AI_SERVER_URL = "http://ai-server-ip:8000";
 
     @Transactional
     public Long createPost(PostCreateRequest request, String loginId) {
@@ -56,37 +68,49 @@ public class PostService {
 
         Post savedPost = postRepository.save(post);
 
-        sendToAiTagging(savedPost);
-        sendToAiDbSave(savedPost);
+        processAiTasks(savedPost);
 
         return savedPost.getId();
     }
 
-    private void sendToAiTagging(Post post) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("postId", post.getId());
-            body.put("situation", post.getSituation());
-            body.put("choice", post.getAction());
-            body.put("outcome", post.getRetrospective());
-            body.put("reflection", post.getRetrospective());
+    public void processAiTasks(Post post) {
+        // AI 서버로 보낼 요청 객체
+        Map<String, Object> request = new HashMap<>();
+        request.put("postId", post.getId());
+        request.put("situation", post.getSituation());
+        request.put("action", post.getAction());
+        request.put("reflection", post.getRetrospective());
 
-            executePostRequest(AI_TAGGING_URL, body);
+        try {
+            // 태그 분류 요청
+            String tagUrl = AI_SERVER_URL + "/api/ai/tag";
+            ResponseEntity<TagResponse> tagResponse = restTemplate.postForEntity(tagUrl, request, TagResponse.class);
+
+            if (tagResponse.getStatusCode().is2xxSuccessful()) {
+                // 받은 태그 ID들로 PostTag 매핑 저장
+                savePostTags(post, tagResponse.getBody().getTags());
+            }
+
+            // 임베딩 및 추천 데이터 갱신 요청
+            String recommUrl = AI_SERVER_URL + "/api/ai/recommend";
+            restTemplate.postForEntity(recommUrl, request, String.class);
+
         } catch (Exception e) {
-            System.err.println("AI Tagging 호출 실패: " + e.getMessage());
+            log.error("AI 연동 중 오류 발생: {}", e.getMessage());
         }
     }
 
-    private void sendToAiDbSave(Post post) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("postId", post.getId());
-            body.put("situation", post.getSituation());
-            body.put("choice", post.getAction());
+    private void savePostTags(Post post, List<TagResult> tagResults) {
+        for (TagResult result : tagResults) {
+            SituationTag tag = tagRepository.findById(result.getTagId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)); //
 
-            executePostRequest(AI_DB_SAVE_URL, body);
-        } catch (Exception e) {
-            System.err.println("AI DB Save 호출 실패: " + e.getMessage());
+            PostSituationTag postTag = PostSituationTag.builder()
+                    .post(post)
+                    .tag(tag)
+                    .build();
+
+            postTagRepository.save(postTag);
         }
     }
 

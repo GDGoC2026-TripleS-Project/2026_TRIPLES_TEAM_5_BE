@@ -30,7 +30,7 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                                // REST API 환경: CSRF 비활성화
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .formLogin(AbstractHttpConfigurer::disable)
                                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -65,4 +65,25 @@ public class SecurityConfig {
 
                 return http.build();
         }
+
+    @Bean
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+
+        // 프론트엔드 주소
+        configuration.addAllowedOrigin("http://localhost:3000");
+
+        // 허용할 HTTP 메서드
+        configuration.addAllowedMethod("*");
+
+        // 허용할 헤더
+        configuration.addAllowedHeader("*");
+
+        // 쿠키 및 인증 헤더 허용
+        configuration.setAllowCredentials(true);
+
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 }
