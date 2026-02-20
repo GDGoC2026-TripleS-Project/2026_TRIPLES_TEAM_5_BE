@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.triples.team5be.domain.user.dto.ArchivePostsResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -53,6 +54,19 @@ public class UserMeController {
             @AuthenticationPrincipal String userIdStr) {
         Long userId = Long.parseLong(userIdStr);
         WithdrawResponse response = userService.withdrawMyAccount(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    // 아카이브 목록 조회
+    @GetMapping("/posts")
+    public ResponseEntity<ArchivePostsResponse> getMyArchivePosts(
+            @AuthenticationPrincipal String userIdStr,
+            @RequestParam(defaultValue = "MY_POST") String filter,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Long userId = Long.parseLong(userIdStr);
+        ArchivePostsResponse response = userService.getMyArchivePosts(userId, filter, sort, page, size);
         return ResponseEntity.ok(response);
     }
 }

@@ -30,6 +30,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.triples.team5be.domain.user.dto.ArchivePostsResponse;
+import com.triples.team5be.domain.post.repository.PostLikeRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.util.Comparator;
+import java.util.List;
 
 import java.time.LocalDateTime;
 
@@ -380,5 +389,75 @@ public class UserService {
 
     private int safeInt(Integer value, int defaultValue) {
         return value != null ? value : defaultValue;
+    }
+
+    private final PostLikeRepository postLikeRepository;
+
+    // (사용자) 아카이브 목록 조회
+    // GET
+    // /users/me/posts?filter=MY_POST|LIKED&sort=latest|views|likes&page=0&size=20
+    @Transactional(readOnly = true)
+    public ArchivePostsResponse getMyArchivePosts(Long userId, String filter, String sort, int page, int size) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new IllegalArgumentException("탈퇴한 계정입니다.");
+        }
+        if (page < 0)
+            throw new IllegalArgumentException("page는 0 이상이어야 합니다.");
+        if (size <= 0)
+            throw new IllegalArgumentException("size는 1 이상이어야 합니다.");
+
+        String filterKey = (filter == null || filter.isBlank()) ? "MY_POST" : filter.trim().toUpperCase();
+        String sortKey = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+
+        Sort sortSpec = switch (sortKey) {
+            case "latest" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "views" -> Sort.by(Sort.Direction.DESC, "viewCount");
+            case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
+            default -> throw new IllegalArgumentException("sort는 latest/views/likes 중 하나여야 합니다.");
+        };
+
+        Pageable pageable = PageRequest.of(page, size, sortSpec);
+
+        Page<com.triples.team5be.domain.post.entity.Post> postPage = switch (filterKey) {
+            case "MY_POST" -> postRepository.findByAuthorId(userId, pageable);
+            case "LIKED" -> postLikeRepository.findLikedPosts(userId, pageable);
+            default -> throw new IllegalArgumentException("filter는 MY_POST/LIKED 중 하나여야 합니다.");
+        };
+
+        List<ArchivePostsResponse.Content> content = postPage.getContent().stream().map(post -> {
+            boolean anonymous = Boolean.TRUE.equals(post.getIsAnonymous());
+
+            String authorName = anonymous ? "익명" : post.getAuthor().getLoginId();
+            Integer trustScore = post.getAuthor().getTrustScore();
+
+            // 태그 가나다순 정렬
+            List<String> tags = post.getPostSituationTags().stream()
+                    .map(pst -> pst.getTag().getName())
+                    .sorted(Comparator.naturalOrder())
+                    .toList();
+
+            return new ArchivePostsResponse.Content(
+                    post.getTitle(),
+                    authorName,
+                    trustScore,
+                    anonymous,
+                    tags,
+                    post.getCreatedAt(),
+                    post.getUpdatedAt(),
+                    post.getViewCount(),
+                    post.getLikeCount());
+        }).toList();
+
+        ArchivePostsResponse.PageInfo pageInfo = new ArchivePostsResponse.PageInfo(
+                postPage.getNumber(),
+                postPage.hasNext(),
+                postPage.getTotalElements());
+
+        ArchivePostsResponse.Data data = new ArchivePostsResponse.Data(content, pageInfo);
+
+        return new ArchivePostsResponse(200, "조회 성공하였습니다.", data);
     }
 }

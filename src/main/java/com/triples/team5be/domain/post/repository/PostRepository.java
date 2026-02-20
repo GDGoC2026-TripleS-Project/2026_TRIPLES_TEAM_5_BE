@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -32,4 +34,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("select p.viewCount from Post p where p.id = :postId")
     int findViewCountById(@Param("postId") Long postId);
+
+    // 아카이브 목록 조회
+    Page<Post> findByAuthorId(Long authorId, Pageable pageable);
 }
