@@ -163,6 +163,33 @@ public class User extends BaseTimeEntity {
         this.tokenRestricted = tokenRestricted;
     }
 
+    // 비밀번호 변경용 (encodedPassword를 넣어주세요)
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    // 계정 정보 수정(PATCH)용 - null이 아닌 값만 반영
+    public void updateDetail(
+            String userName,
+            LocalDate birthDate,
+            Gender gender,
+            String phoneNumber,
+            Boolean thirdPartyConsent,
+            Boolean marketingConsent) {
+        if (userName != null)
+            this.userName = userName;
+        if (birthDate != null)
+            this.birthDate = birthDate;
+        if (gender != null)
+            this.gender = gender;
+        if (phoneNumber != null)
+            this.phoneNumber = phoneNumber;
+        if (thirdPartyConsent != null)
+            this.thirdPartyConsent = thirdPartyConsent;
+        if (marketingConsent != null)
+            this.marketingConsent = marketingConsent;
+    }
+
     @Builder
     public User(String loginId, String password, String userName, LocalDate birthDate,
             Gender gender, String phoneNumber, Boolean thirdPartyConsent, Boolean marketingConsent,

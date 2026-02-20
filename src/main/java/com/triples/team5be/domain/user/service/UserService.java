@@ -7,6 +7,10 @@ import com.triples.team5be.domain.user.dto.LoginResponse;
 import com.triples.team5be.domain.user.dto.SignUpRequest;
 import com.triples.team5be.domain.user.dto.SignUpResponse;
 import com.triples.team5be.domain.user.dto.TrustStatusResponse;
+import com.triples.team5be.domain.user.dto.UpdatePasswordRequest;
+import com.triples.team5be.domain.user.dto.UpdatePasswordResponse;
+import com.triples.team5be.domain.user.dto.UpdateUserDetailRequest;
+import com.triples.team5be.domain.user.dto.UpdateUserDetailResponse;
 import com.triples.team5be.domain.user.entity.TokenBalance;
 import com.triples.team5be.domain.user.entity.User;
 import com.triples.team5be.domain.user.enums.UserRole;
@@ -88,10 +92,93 @@ public class UserService {
                 token);
     }
 
-    // =========================
-    // ✅ (사용자) 내 신뢰도/제재 상태 조회
+    // (사용자) 계정 정보 수정
+    // PATCH /users/me/detail
+    @Transactional
+    public UpdateUserDetailResponse updateMyDetail(Long userId, UpdateUserDetailRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        // userName 검증(들어온 경우만)
+        if (request.userName() != null && request.userName().isBlank()) {
+            throw new IllegalArgumentException("userName은 공백일 수 없습니다.");
+        }
+
+        // phoneNumber 검증/중복체크(들어온 경우만)
+        if (request.phoneNumber() != null) {
+            if (request.phoneNumber().isBlank()) {
+                throw new IllegalArgumentException("phoneNumber는 공백일 수 없습니다.");
+            }
+            // 내 id 제외하고 중복 체크
+            if (userRepository.existsByPhoneNumberAndIdNot(request.phoneNumber(), user.getId())) {
+                throw new IllegalArgumentException("이미 등록된 전화번호입니다.");
+            }
+        }
+
+        // 엔티티에 추가한 updateDetail() 호출 (null이면 기존값 유지)
+        user.updateDetail(
+                request.userName(),
+                request.birthDate(),
+                request.gender(),
+                request.phoneNumber(),
+                request.thirdPartyConsent(),
+                request.marketingConsent());
+
+        userRepository.save(user); // 프로젝트 스타일에 맞춰 명시 save
+
+        return new UpdateUserDetailResponse(
+                user.getId(),
+                user.getUserName(),
+                user.getBirthDate(),
+                user.getGender(),
+                user.getPhoneNumber(),
+                user.getThirdPartyConsent(),
+                user.getMarketingConsent());
+    }
+
+    // ✅ (사용자) 비밀번호 수정
+    // PATCH /users/me/password
+    @Transactional
+    public UpdatePasswordResponse updateMyPassword(Long userId, UpdatePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        if (request == null) {
+            throw new IllegalArgumentException("요청 값이 비어있습니다.");
+        }
+        if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+            throw new IllegalArgumentException("currentPassword는 필수입니다.");
+        }
+        if (request.newPassword() == null || request.newPassword().isBlank()) {
+            throw new IllegalArgumentException("newPassword는 필수입니다.");
+        }
+
+        // 새 비밀번호 최소 길이 (팀 정책 있으면 그걸로 수정)
+        if (request.newPassword().length() < 8) {
+            throw new IllegalArgumentException("newPassword는 8자 이상이어야 합니다.");
+        }
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 동일 비밀번호 방지(선택)
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("새 비밀번호는 기존 비밀번호와 달라야 합니다.");
+        }
+
+        // 변경 (User 엔티티: changePassword 필요)
+        String encoded = passwordEncoder.encode(request.newPassword());
+        user.changePassword(encoded);
+
+        userRepository.save(user);
+
+        return new UpdatePasswordResponse(user.getId(), "비밀번호 변경 완료");
+    }
+
+    // (사용자) 내 신뢰도/제재 상태 조회
     // GET /users/me/trust-status
-    // =========================
     @Transactional
     public TrustStatusResponse getMyTrustStatus(Long userId) {
         User user = userRepository.findById(userId)
@@ -112,10 +199,8 @@ public class UserService {
                 RECOVERED_SCORE);
     }
 
-    // =========================
-    // ✅ (관리자) 신뢰도 점수 증감 + 자동 제재 트리거(삼진아웃)
+    // (관리자) 신뢰도 점수 증감 + 자동 제재 트리거(삼진아웃)
     // PATCH /admin/users/{userId}/trust-score
-    // =========================
     @Transactional
     public AdminAdjustTrustScoreResponse adjustTrustScore(Long adminId, Long targetUserId,
             AdminAdjustTrustScoreRequest request) {
@@ -143,7 +228,7 @@ public class UserService {
         int prev = safeInt(target.getTrustScore(), 0);
         int raw = prev + request.scoreDelta();
 
-        // ✅ @Min(0) 깨지지 않게: 음수 저장 금지
+        // @Min(0) 깨지지 않게: 음수 저장 금지
         if (raw <= 0) {
             // 점수는 0으로만 저장
             target.setTrustScore(0);
@@ -171,10 +256,7 @@ public class UserService {
                 target.getBanReleaseDate());
     }
 
-    // =========================
     // 내부 로직
-    // =========================
-
     private void autoRecoverIfNeeded(User user) {
         if (user.getStatus() != UserStatus.BANNED)
             return;

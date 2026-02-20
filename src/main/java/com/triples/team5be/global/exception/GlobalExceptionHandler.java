@@ -9,6 +9,13 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // IllegalArgumentException -> 400
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<SimpleErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new SimpleErrorResponse(e.getMessage()));
+    }
+
     // 400
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<SimpleErrorResponse> handleBadRequest(BadRequestException e) {
