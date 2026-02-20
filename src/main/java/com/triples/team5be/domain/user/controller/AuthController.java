@@ -1,9 +1,6 @@
 package com.triples.team5be.domain.user.controller;
 
-import com.triples.team5be.domain.user.dto.LoginRequest;
-import com.triples.team5be.domain.user.dto.LoginResponse;
-import com.triples.team5be.domain.user.dto.SignUpRequest;
-import com.triples.team5be.domain.user.dto.SignUpResponse;
+import com.triples.team5be.domain.user.dto.*;
 import com.triples.team5be.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
-public class UserController {
+public class AuthController {
 
     private final UserService userService;
 
@@ -29,5 +26,11 @@ public class UserController {
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         LoginResponse response = userService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody LogoutRequest logoutRequest) {
+        userService.logout(logoutRequest.getAccessToken());
+        return ResponseEntity.ok("로그아웃되었습니다.");
     }
 }

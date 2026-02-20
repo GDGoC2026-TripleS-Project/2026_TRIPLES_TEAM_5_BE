@@ -85,7 +85,7 @@ public class User extends BaseTimeEntity {
     // 신뢰도 점수
     @Min(0) @Max(100)
     @Column(nullable = false)
-    private Integer trustScore; // 기본 신뢰 점수
+    private Integer trustScore = 50; // 기본 신뢰 점수
 
     // 아이디 변경 일시
     // 아이디 변경 주기 제한용
