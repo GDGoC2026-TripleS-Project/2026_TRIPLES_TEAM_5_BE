@@ -84,8 +84,8 @@ public class Post extends BaseTimeEntity {
 
     @Builder
     public Post(User author, String title, String situation, String action,
-                String retrospective, Boolean isPremium, Integer requiredToken,
-                Boolean isAnonymous, PostStatus status) {
+            String retrospective, Boolean isPremium, Integer requiredToken,
+            Boolean isAnonymous, PostStatus status) {
         this.author = author;
         this.title = title;
         this.situation = situation;

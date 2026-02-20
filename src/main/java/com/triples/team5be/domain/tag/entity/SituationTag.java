@@ -17,7 +17,4 @@ public class SituationTag {
 
     @Column(nullable = false, length = 30)
     private String name;
-
-    @Column(nullable = false)
-    private Boolean isActive;
 }
