@@ -7,7 +7,7 @@ services:
       - "3306:3306"
     environment:
       MYSQL_DATABASE: pastus
-      MYSQL_ROOT_PASSWORD: my_password  # 추후 수정
+      MYSQL_ROOT_PASSWORD: EkRs0303!!
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql  # 처음 뜰 때 테이블 자동 생성
     command:

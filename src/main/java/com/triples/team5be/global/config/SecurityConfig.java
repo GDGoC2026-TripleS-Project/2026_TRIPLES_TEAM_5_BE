@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,8 +32,8 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf(csrf -> csrf.disable()) // API 테스트 위해 잠깐 비활성화
+                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .formLogin(AbstractHttpConfigurer::disable)
                                 .httpBasic(AbstractHttpConfigurer::disable)
 
@@ -41,7 +43,7 @@ public class SecurityConfig {
 
                                 // API 접근 권한
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**").permitAll()
+                                                .requestMatchers("/", "/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/swagger-ui.html").permitAll()
 
                                                 // 조회수 집계/중복방지 API는 익명도 가능(anonymousId 쿠키 사용)
                                                 .requestMatchers(org.springframework.http.HttpMethod.POST,
@@ -70,8 +72,11 @@ public class SecurityConfig {
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 
-        // 프론트엔드 주소
-        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://51.20.78.158:8080"
+//                "https://yourdomain.com"  도메인 연결 시 수정
+        ));
 
         // 허용할 HTTP 메서드
         configuration.addAllowedMethod("*");
@@ -87,3 +92,4 @@ public class SecurityConfig {
         return source;
     }
 }
+

@@ -15,6 +15,6 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
 
     boolean existsByPostIdAndUserId(Long postId, Long userId);
 
-    @Query("select pl.post from PostLike pl where pl.user.id = :userId")
+    @Query("select p from Post p where p.id in (select pl.postId from PostLike pl where pl.userId = :userId)")
     Page<Post> findLikedPosts(@Param("userId") Long userId, Pageable pageable);
 }
