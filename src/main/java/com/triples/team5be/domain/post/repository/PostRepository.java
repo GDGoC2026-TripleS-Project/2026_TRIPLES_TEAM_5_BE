@@ -1,0 +1,40 @@
+package com.triples.team5be.domain.post.repository;
+
+import com.triples.team5be.domain.post.entity.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+@Repository
+public interface PostRepository extends JpaRepository<Post, Long> {
+
+    // 내가 쓴 글 개수(마이페이지 postCount)
+    int countByAuthorId(Long authorId);
+
+    // 좋아요 집계
+    @Modifying
+    @Query("update Post p set p.likeCount = p.likeCount + 1 where p.id = :postId")
+    int incrementLikeCount(@Param("postId") Long postId);
+
+    @Modifying
+    @Query("update Post p set p.likeCount = case when p.likeCount > 0 then p.likeCount - 1 else 0 end where p.id = :postId")
+    int decrementLikeCount(@Param("postId") Long postId);
+
+    @Query("select p.likeCount from Post p where p.id = :postId")
+    int findLikeCountById(@Param("postId") Long postId);
+
+    // 조회수 집계
+    @Modifying
+    @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :postId")
+    int incrementViewCount(@Param("postId") Long postId);
+
+    @Query("select p.viewCount from Post p where p.id = :postId")
+    int findViewCountById(@Param("postId") Long postId);
+
+    // 아카이브 목록 조회
+    Page<Post> findByAuthorId(Long authorId, Pageable pageable);
+}

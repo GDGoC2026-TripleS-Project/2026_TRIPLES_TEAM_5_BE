@@ -8,4 +8,3 @@ import java.util.List;
 public interface SituationTagRepository extends JpaRepository<SituationTag, Long> {
     List<SituationTag> findAllByOrderByIdAsc();
 }
-
